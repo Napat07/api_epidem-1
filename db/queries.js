@@ -1,7 +1,3 @@
-const { raw } = require('express')
-const { raw } = require('express')
-const { raw } = require('express')
-
 const Pool = require('pg').Pool
 const pool = new Pool({
   user: 'postgres',
