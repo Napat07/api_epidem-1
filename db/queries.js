@@ -1,4 +1,6 @@
 const { raw } = require('express')
+const { raw } = require('express')
+const { raw } = require('express')
 
 const Pool = require('pg').Pool
 const pool = new Pool({
@@ -59,9 +61,9 @@ const epidem_person = (req, res) => {
   tp.patient_house as address,
   tp.patient_moo as moo, 
   tp.patient_road as road, 
-  f1.address_description as tmb_code, 
-  f2.address_description as amp_code, 
-  f3.address_description as chw_code,
+  f1.address_tambon_type as tmb_code, 
+  f2.address_amphur_id as amp_code, 
+  f3.address_changwat_id as chw_code,
   tp.patient_patient_mobile_phone as mobile_phone, 
   tp.f_patient_occupation_id as occupation
 
@@ -83,7 +85,26 @@ where patient_pid = '${pid}';
     let message = new Object ; 
     if (raw_result) {
       let raw = {
-        cid : raw_result.cid
+        cid : raw_result.cid,
+        passport_no : '-',
+        prefix : raw_result.prefix,
+        first_name : raw_result.first_name,
+        last_name : raw_result.last_name,
+        nationality : raw_result.nationality,
+        gender : raw_result.gender,
+        birth_date : raw_result.birth_date,
+        age_y : raw_result.age_y,
+        age_m : raw_result.age_m,
+        age_d : raw_result.age_d,
+        marital_status_id : raw_result.marital_status_id,
+        address : raw_result.address,
+        moo : raw_result.moo,
+        road : raw_result.road,
+        chw_code : raw_result.chw_code,
+        amp_code : raw_result.amp_code,
+        tmb_code : raw_result.tmb_code,
+        mobile_phone : raw_result.mobile_phone,
+        occupation : raw_result.occupation
       
       }
       message.msg = true
