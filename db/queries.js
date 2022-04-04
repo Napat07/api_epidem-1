@@ -122,7 +122,7 @@ const epidem_report = (req, res) => {
   let query = `
   
 
-  
+
 
    `
   pool.query(query, (error, results) => {
@@ -133,8 +133,39 @@ const epidem_report = (req, res) => {
     let message = new Object ; 
     if (raw_result.length > 0) {
         let raw = {
-         
-
+          epidem_report_guid : '-',
+          epidem_report_group_id : '92',
+          treated_hospital_code : '11402',
+          report_datetime : ,
+          onset_date : ,
+          treated_date : ,
+          diagnosis_date : ,
+          informer_name : ,
+          principal_diagnosis_icd10 : ,
+          diagnosis_icd10_list : ,
+          epidem_person_status_id : ,
+          epidem_symptom_type_id : ,
+          pregnant_status : ,
+          respirator_status : ,
+          epidem_accommodation_type_id : , 
+          vaccinated_status : ,
+          exposure_epidemic_area_status : ,
+          exposure_healthcare_worker_status : ,
+          exposure_closed_contact_status : ,
+          exposure_occupation_status : ,
+          exposure_travel_status : , 
+          risk_history_type_id : ,
+          epidem_address : ,
+          epidem_moo : ,
+          epidem_road : ,
+          pidem_chw_code : ,
+          epidem_amp_code : ,
+          epidem_tmb_code : ,
+          location_gis_latitude : ,
+          location_gis_longitude : ,
+          isolate_chw_code : ,
+          isolate_place_id : ,
+          patient_type : ,
 
       }
       message.msg = true 
@@ -152,28 +183,31 @@ const epidem_labs_report = (req, res) => {
   const pid = req.params.pid
   let query = `
   SELECT	
-      trl.result_lab_name as epidem_lab_confirm_type_id,
-      substring(trl.record_date_time,1,10) as lab_report_date,
-      max(case when trim(lower(trl.result_lab_name)) like '%rna%'  then result_lab_value else '' end) as lab_report_result,
-      substring(tv.visit_begin_visit_time,1,10) as specimen_date, 
-      tv.visit_dx AS lab_his_ref_name
-
+			trl.result_lab_name as epidem_lab_confirm_type_id,
+			substring(trl.record_date_time,1,10) as lab_report_date,
+			substring(trl.record_date_time,12,17) as time,
+			max(case when trim(lower(trl.result_lab_name)) like '%rna%'  then result_lab_value else '' end) as lab_report_result,
+			max(case when trim(lower(trl.result_lab_name)) like '%sputum%'  then result_lab_value else '' end) as lab_report_result2,
+			substring(tv.visit_begin_visit_time,1,10) as specimen_date, 
+			tv.visit_dx AS lab_his_ref_name,
+      tv.visit_cause_appointment as tests_reason_type_id
     FROM t_patient tp
-			INNER JOIN t_visit tv ON (tp.t_patient_id = tv.t_patient_id )
-			INNER JOIN t_result_lab trl ON (tv.t_visit_id = trl.t_visit_id and trl.result_lab_value <> '' )
-			AND (   trim(lower(trl.result_lab_name)) like '%rna%' or  trim(lower(trl.result_lab_name)) like '%sputum%' )
-		
+        INNER JOIN t_visit tv ON (tp.t_patient_id = tv.t_patient_id )
+        INNER JOIN t_result_lab trl ON (tv.t_visit_id = trl.t_visit_id and trl.result_lab_value <> '' )
+        AND (   trim(lower(trl.result_lab_name)) like '%rna%' or  trim(lower(trl.result_lab_name)) like '%sputum%' )
     WHERE  	patient_pid = '${pid}'
-				    and	trl.result_lab_name like 'sputum PCR for COVID%' or trl.result_lab_name like 'SARS-CoV-2-RNA%' or trl.result_lab_name like '%rna%'
-						and (trl.result_lab_value like 'SARS-CoV-2-RNA%'  or trl.result_lab_value like 'Pos%' or trl.result_lab_value like 'DE%')
-									
+				and	trl.result_lab_name like 'sputum PCR for COVID%' or trl.result_lab_name like 'SARS-CoV-2-RNA%' or trl.result_lab_name like '%rna%'
+				and (trl.result_lab_value like 'SARS-CoV-2-RNA%'  or trl.result_lab_value like 'Pos%' or trl.result_lab_value like 'DE%')
     GROUP BY 
         tv.visit_begin_visit_time,
         trl.record_date_time,
         trl.result_lab_name,
-        tv.visit_dx 
-    ORDER BY
-        lab_report_date DESC
+        tv.visit_dx ,
+        tv.visit_cause_appointment
+    ORDER BY 
+        substring(trl.record_date_time,1,10) DESC , 
+        substring(trl.record_date_time, 12, 17) DESC ;
+		
      `
 
   pool.query(query, (error, results) => {
@@ -189,7 +223,7 @@ const epidem_labs_report = (req, res) => {
           lab_report_result: raw_result.lab_report_result,
           specimen_date: raw_result.specimen_date,
           specimen_place_id: "11402",
-          tests_reason_type_id: '-',
+          tests_reason_type_id: raw_result.tests_reason_type_id,
           lab_his_ref_code: '-',
           lab_his_ref_name: raw_result.lab_his_ref_name,
           tmlt_code: '-'
