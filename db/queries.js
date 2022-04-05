@@ -120,9 +120,43 @@ const epidem_person = (req, res) => {
 const epidem_report = (req, res) => {
   const pid = req.params.pid
   let query = `
-  
+  SELECT DISTINCT (tp.patient_pid),
+        substring(trl.record_date_time,1,16) as report_datetime,
+        substring(tvs.visit_service_treatment_date_time,1,10) as treated_date,
+        substring(tvdm.visit_diag_map_date_time,1,10) as diagnosis_date,
+        trl.result_lab_staff_record as informer_name,
+        t_diag_icd10.diag_icd10_number as principal_diagnosis_icd10 ,
+				tv.visit_pregnant as pregnant_status,
+        tp.patient_house as epidem_address,
+        tp.patient_moo as epidem_moo, 
+        tp.patient_road as epidem_road, 
+        f3.address_changwat_id as epidem_chw_code,
+        f2.address_amphur_id as epidem_amp_code, 
+				f1.address_tambon_type as epidem_tmb_code, 
+				tp.latitude as latitude,
+				tp.longitude as longitude,
+				case when tor.order_price_type = '1'
+                       then 'IPD'
+                  when tor.order_price_type ='0'
+                       then 'OPD'
+                  else ''
+                  end AS status	
+    FROM
+        t_patient tp
+        inner join f_address f1 on tp.patient_tambon = f1.f_address_id
+        inner join f_address f2 on tp.patient_amphur = f2.f_address_id
+        inner join f_address f3 on tp.patient_changwat = f3.f_address_id
+        inner join t_order tor on tp.t_patient_id = tor.t_patient_id
+        inner join t_visit tv on tp.t_patient_id = tv.t_patient_id
+        inner JOIN t_diag_icd10 on (tv.t_visit_id = t_diag_icd10.diag_icd10_vn and t_diag_icd10.f_diag_icd10_type_id = '1' and t_diag_icd10.diag_icd10_active ='1' )
+        inner join t_result_lab trl ON tv.t_visit_id = trl.t_visit_id
+        inner join t_visit_service tvs ON tv.t_visit_id = tvs.t_visit_id 
+        inner join t_visit_diag_map tvdm ON tv.t_visit_id = tvdm.t_visit_id 
+			
+    WHERE patient_pid = '${pid}'
 
-
+    ORDER BY 
+		    substring(trl.record_date_time,1,16) DESC ;
 
    `
   pool.query(query, (error, results) => {
@@ -131,41 +165,40 @@ const epidem_report = (req, res) => {
     }
     let raw_result = results.rows[0]
     let message = new Object ; 
-    if (raw_result.length > 0) {
+    if (raw_result) {
         let raw = {
           epidem_report_guid : '-',
-          epidem_report_group_id : '92',
-          treated_hospital_code : '11402',
-          report_datetime : ,
-          onset_date : ,
-          treated_date : ,
-          diagnosis_date : ,
-          informer_name : ,
-          principal_diagnosis_icd10 : ,
-          diagnosis_icd10_list : ,
-          epidem_person_status_id : ,
-          epidem_symptom_type_id : ,
-          pregnant_status : ,
-          respirator_status : ,
-          epidem_accommodation_type_id : , 
-          vaccinated_status : ,
-          exposure_epidemic_area_status : ,
-          exposure_healthcare_worker_status : ,
-          exposure_closed_contact_status : ,
-          exposure_occupation_status : ,
-          exposure_travel_status : , 
-          risk_history_type_id : ,
-          epidem_address : ,
-          epidem_moo : ,
-          epidem_road : ,
-          pidem_chw_code : ,
-          epidem_amp_code : ,
-          epidem_tmb_code : ,
-          location_gis_latitude : ,
-          location_gis_longitude : ,
-          isolate_chw_code : ,
-          isolate_place_id : ,
-          patient_type : ,
+          epidem_report_group_id : "92",
+          treated_hospital_code : "11402",
+          report_datetime : raw_result.report_datetime,
+          onset_date : '-',
+          treated_date : raw_result.treated_date,
+          diagnosis_date : raw_result.diagnosis_date,
+          informer_name : raw_result.informer_name,
+          principal_diagnosis_icd10 : raw_result.principal_diagnosis_icd10,
+          epidem_person_status_id : '-',
+          epidem_symptom_type_id : '-',
+          pregnant_status : raw_result.pregnant_status,
+          respirator_status : '-',
+          epidem_accommodation_type_id : '-', 
+          vaccinated_status : '-',
+          exposure_epidemic_area_status : '-',
+          exposure_healthcare_worker_status : '-',
+          exposure_closed_contact_status : '-',
+          exposure_occupation_status : '-',
+          exposure_travel_status : '-', 
+          risk_history_type_id : '-',
+          epidem_address : raw_result.epidem_address,
+          epidem_moo : raw_result.epidem_moo,
+          epidem_road : raw_result.epidem_road,
+          pidem_chw_code : raw_result.pidem_chw_code,
+          epidem_amp_code : raw_result.epidem_amp_code,
+          epidem_tmb_code : raw_result.epidem_tmb_code,
+          location_gis_latitude : raw_result.latitude,
+          location_gis_longitude : raw_result.longitude,
+          isolate_chw_code : raw_result.epidem_chw_code,
+          isolate_place_id : '-',
+          patient_type : raw_result.status
 
       }
       message.msg = true 
@@ -185,7 +218,6 @@ const epidem_labs_report = (req, res) => {
   SELECT	
 			trl.result_lab_name as epidem_lab_confirm_type_id,
 			substring(trl.record_date_time,1,10) as lab_report_date,
-			substring(trl.record_date_time,12,17) as time,
 			max(case when trim(lower(trl.result_lab_name)) like '%rna%'  then result_lab_value else '' end) as lab_report_result,
 			max(case when trim(lower(trl.result_lab_name)) like '%sputum%'  then result_lab_value else '' end) as lab_report_result2,
 			substring(tv.visit_begin_visit_time,1,10) as specimen_date, 
