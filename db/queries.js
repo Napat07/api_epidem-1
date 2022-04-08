@@ -42,7 +42,7 @@ const epidem_hospital = (req, res) => {
 }
 
 const epidem_person = (req, res) => {
-  const pid = req.params.pid
+  const cid = req.params.cid
   let query = `
   SELECT 
           tp.patient_pid as cid,  
@@ -72,7 +72,7 @@ const epidem_person = (req, res) => {
         inner join f_address f2 on tp.patient_amphur = f2.f_address_id
         inner join f_address f3 on tp.patient_changwat = f3.f_address_id
         inner join f_patient_nation f4 on tp.f_patient_nation_id = f4.f_patient_nation_id
-        where patient_pid = '${pid}';
+        where patient_pid = '${cid}';
     `
 
   pool.query(query, (error, results) => {
@@ -118,10 +118,10 @@ const epidem_person = (req, res) => {
 }
 
 const epidem_report = (req, res) => {
-  const pid = req.params.pid
+  const cid = req.params.cid
   let query = `
   select
-      q1.cid,
+
       q1.report_datetime,
       q1.treated_date,
       q1.diagnosis_date,
@@ -175,13 +175,12 @@ SELECT 	tp.patient_pid as cid,
           inner join t_visit_service tvs ON tv.t_visit_id = tvs.t_visit_id 
           inner join t_visit_diag_map tvdm ON tv.t_visit_id = tvdm.t_visit_id 
 
-      WHERE patient_pid = '3910200137952' 
+      WHERE patient_pid = '${cid}' 
 			and t_diag_icd10.diag_icd10_active = '1'
 			
 					
 ) as q1	
 GROUP BY
-      q1.cid,
       q1.report_datetime,
       q1.treated_date,
       q1.diagnosis_date,
@@ -208,6 +207,7 @@ GROUP BY
     let message = new Object ; 
     if (raw_result) {
         let raw = {
+          cid : raw_result.cid,
           epidem_report_guid : '-',
           epidem_report_group_id : "92",
           treated_hospital_code : "11402",
@@ -255,7 +255,7 @@ GROUP BY
 }
 
 const epidem_labs_report = (req, res) => {
-  const pid = req.params.pid
+  const cid = req.params.cid
   let query = `
   SELECT	
 			trl.result_lab_name as epidem_lab_confirm_type_id,
@@ -269,7 +269,7 @@ const epidem_labs_report = (req, res) => {
         INNER JOIN t_visit tv ON (tp.t_patient_id = tv.t_patient_id )
         INNER JOIN t_result_lab trl ON (tv.t_visit_id = trl.t_visit_id and trl.result_lab_value <> '' )
         AND (   trim(lower(trl.result_lab_name)) like '%rna%' or  trim(lower(trl.result_lab_name)) like '%sputum%' )
-    WHERE  	patient_pid = '${pid}'
+    WHERE  	patient_pid = '${cid}'
 				and	trl.result_lab_name like 'sputum PCR for COVID%' or trl.result_lab_name like 'SARS-CoV-2-RNA%' or trl.result_lab_name like '%rna%'
 				and (trl.result_lab_value like 'SARS-CoV-2-RNA%'  or trl.result_lab_value like 'Pos%' or trl.result_lab_value like 'DE%')
     GROUP BY 
@@ -314,7 +314,7 @@ const epidem_labs_report = (req, res) => {
 }
 
 const epidem_vaccination = (req, res) => {
-  const pid = req.params.pid
+  const cid = req.params.cid
   let query = `
   SELECT  
       substring(tv.visit_begin_visit_time,1,10) as vaccine_date,
@@ -326,7 +326,7 @@ const epidem_vaccination = (req, res) => {
           ON tp.t_patient_id = tv.t_patient_id	
 
     WHERE tv.visit_dx like '_accine C%'
-    and patient_pid = '${pid}'
+    and patient_pid = '${cid}'
   `
   pool.query(query, (error, results) => {
     if (error) {
