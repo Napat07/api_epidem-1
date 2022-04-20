@@ -1,5 +1,3 @@
-const { raw } = require('express')
-
 const Pool = require('pg').Pool
 const pool = new Pool({
   user: 'postgres',
@@ -11,8 +9,8 @@ const pool = new Pool({
 
 const epidem_hospital = (req, res) => {
   let query = `
-    SELECT tp.patient_pid 
-    FROM t_patient tp
+    SELECT b_site.b_visit_office_id as hospital_code
+    FROM b_site
   
   `
   pool.query(query, (error, results) => {
@@ -24,7 +22,7 @@ const epidem_hospital = (req, res) => {
     let message = new Object ; 
     if (raw_result) {
       let raw = {
-        hospital_code : "11402",
+        hospital_code : raw_result.hospital_code,
         hospital_name : "รพ.ควนโดน",
         his_identifier : "HospitalOS version 3.9"
       
@@ -121,82 +119,90 @@ const epidem_report = (req, res) => {
   const cid = req.params.cid
   let query = `
   select
-
-      q1.report_datetime,
-      q1.treated_date,
-      q1.diagnosis_date,
-      q1.informer_name,
-      max(q1.dx1) as principal_diagnosis_icd10,
-      array_to_string(array_agg(distinct q1.dx2),', ') as diagnosis_icd10_list, 
-      q1.pregnant_status,
-      q1.epidem_address,
-      q1.epidem_moo,
-      q1.epidem_road,
-      q1.epidem_chw_code,
-      q1.epidem_amp_code,
-      q1.epidem_tmb_code,
-      q1.latitude,
-      q1.longitude,
-      q1.status
-
-from(
-
-SELECT 	tp.patient_pid as cid,
-        substring(trl.record_date_time,1,16) as report_datetime,
-        substring(tvs.visit_service_treatment_date_time,1,10) as treated_date,
-        substring(tvdm.visit_diag_map_date_time,1,10) as diagnosis_date,
-        trl.result_lab_staff_record as informer_name,
-        CASE t_diag_icd10.f_diag_icd10_type_id WHEN '1' THEN t_diag_icd10.diag_icd10_number ELSE '' END dx1,
-        CASE t_diag_icd10.f_diag_icd10_type_id WHEN '2' THEN t_diag_icd10.diag_icd10_number ELSE '' END dx2,
-        tv.visit_pregnant as pregnant_status,
-        tp.patient_house as epidem_address,
-        tp.patient_moo as epidem_moo, 
-        tp.patient_road as epidem_road, 
-        f3.address_changwat_id as epidem_chw_code,
-        f2.address_amphur_id as epidem_amp_code, 
-        f1.address_tambon_type as epidem_tmb_code, 
-        tp.latitude as latitude,
-        tp.longitude as longitude,
-        case when tor.order_price_type = '1'
-                      then 'IPD'
-             when tor.order_price_type ='0'
-                      then 'OPD'
-                  else ''
-                end AS status	
-      FROM
-          t_patient tp
-          inner join f_address f1 on tp.patient_tambon = f1.f_address_id
-          inner join f_address f2 on tp.patient_amphur = f2.f_address_id
-          inner join f_address f3 on tp.patient_changwat = f3.f_address_id
-          inner join t_order tor on tp.t_patient_id = tor.t_patient_id
-          inner join t_visit tv on tp.t_patient_id = tv.t_patient_id
-          INNER JOIN t_diag_icd10 ON (tv.t_visit_id = t_diag_icd10.diag_icd10_vn  )
-          inner join t_result_lab trl ON tv.t_visit_id = trl.t_visit_id
-          inner join t_visit_service tvs ON tv.t_visit_id = tvs.t_visit_id 
-          inner join t_visit_diag_map tvdm ON tv.t_visit_id = tvdm.t_visit_id 
-
-      WHERE patient_pid = '${cid}' 
-			and t_diag_icd10.diag_icd10_active = '1'
-			
-					
-) as q1	
-GROUP BY
-      q1.report_datetime,
-      q1.treated_date,
-      q1.diagnosis_date,
-      q1.informer_name,
-      q1.pregnant_status,
-      q1.epidem_address,
-      q1.epidem_moo,
-      q1.epidem_road,
-      q1.epidem_chw_code,
-      q1.epidem_amp_code,
-      q1.epidem_tmb_code,
-      q1.latitude,
-      q1.longitude,
-      q1.status
- ORDER BY 
-          substring(q1.report_datetime,1,16) DESC
+  q1.cid,
+  q1.treated_hospital_code,
+  q1.report_datetime,
+  q1.treated_date,
+  q1.diagnosis_date,
+  q1.informer_name,
+  max(q1.dx1) as principal_diagnosis_icd10,
+  array_to_string(array_agg(distinct q1.dx2),', ') as diagnosis_icd10_list, 
+  q1.pregnant_status,
+  q1.epidem_address,
+  q1.epidem_moo,
+  q1.epidem_road,
+  q1.epidem_chw_code,
+  q1.epidem_amp_code,
+  q1.epidem_tmb_code,
+  q1.latitude,
+  q1.longitude,
+  q1.status
+  
+  from(
+  
+  SELECT 	tp.patient_pid as cid,
+          b_site.b_visit_office_id as treated_hospital_code,
+          substring(trl.record_date_time,1,16) as report_datetime,
+          substring(tvs.visit_service_treatment_date_time,1,10) as treated_date,
+          substring(tvdm.visit_diag_map_date_time,1,10) as diagnosis_date,
+          trl.result_lab_staff_record as informer_name,
+          CASE t_diag_icd10.f_diag_icd10_type_id WHEN '1' THEN t_diag_icd10.diag_icd10_number ELSE '' END dx1,
+          CASE t_diag_icd10.f_diag_icd10_type_id WHEN '2' THEN t_diag_icd10.diag_icd10_number ELSE '' END dx2,
+          tv.visit_pregnant as pregnant_status,
+          tp.patient_house as epidem_address,
+          tp.patient_moo as epidem_moo, 
+          tp.patient_road as epidem_road, 
+          f3.address_changwat_id as epidem_chw_code,
+          f2.address_amphur_id as epidem_amp_code, 
+          f1.address_tambon_type as epidem_tmb_code, 
+          tp.latitude as latitude,
+          tp.longitude as longitude,
+          case when tor.order_price_type = '1'
+                        then 'IPD'
+               when tor.order_price_type ='0'
+                        then 'OPD'
+                    else ''
+                  end AS status	
+        FROM
+            t_patient tp
+            inner join f_address f1 on tp.patient_tambon = f1.f_address_id
+            inner join f_address f2 on tp.patient_amphur = f2.f_address_id
+            inner join f_address f3 on tp.patient_changwat = f3.f_address_id
+            inner join t_order tor on tp.t_patient_id = tor.t_patient_id
+            inner join t_visit tv on tp.t_patient_id = tv.t_patient_id
+            INNER JOIN t_diag_icd10 ON (tv.t_visit_id = t_diag_icd10.diag_icd10_vn  )
+            inner join t_result_lab trl ON tv.t_visit_id = trl.t_visit_id
+            inner join t_visit_service tvs ON tv.t_visit_id = tvs.t_visit_id 
+            inner join t_visit_diag_map tvdm ON tv.t_visit_id = tvdm.t_visit_id 
+            cross join b_site
+  
+        WHERE patient_pid = '${cid}' 
+        and t_diag_icd10.diag_icd10_active = '1'
+        
+            
+  ) as q1
+            
+            
+  GROUP BY
+  q1.cid,
+  q1.treated_hospital_code,
+  q1.report_datetime,
+  q1.treated_date,
+  q1.diagnosis_date,
+  q1.informer_name,
+  q1.pregnant_status,
+  q1.epidem_address,
+  q1.epidem_moo,
+  q1.epidem_road,
+  q1.epidem_chw_code,
+  q1.epidem_amp_code,
+  q1.epidem_tmb_code,
+  q1.latitude,
+  q1.longitude,
+  q1.status
+  
+   ORDER BY 
+            substring(q1.report_datetime,1,16) DESC
 
    `
   pool.query(query, (error, results) => {
@@ -210,7 +216,7 @@ GROUP BY
           cid : raw_result.cid,
           epidem_report_guid : '-',
           epidem_report_group_id : "92",
-          treated_hospital_code : "11402",
+          treated_hospital_code : raw_result.treated_hospital_code,
           report_datetime : raw_result.report_datetime,
           onset_date : '-',
           treated_date : raw_result.treated_date,
@@ -262,26 +268,33 @@ const epidem_labs_report = (req, res) => {
 			substring(trl.record_date_time,1,10) as lab_report_date,
 			max(case when trim(lower(trl.result_lab_name)) like '%rna%'  then result_lab_value else '' end) as lab_report_result,
 			max(case when trim(lower(trl.result_lab_name)) like '%sputum%'  then result_lab_value else '' end) as lab_report_result2,
-			substring(tv.visit_begin_visit_time,1,10) as specimen_date, 
+			substring(tv.visit_begin_visit_time,1,10) as specimen_date,
+			bs.b_visit_office_id as	specimen_place_id,
 			tv.visit_dx AS lab_his_ref_name,
-      tv.visit_cause_appointment as tests_reason_type_id
+			tv.visit_cause_appointment as tests_reason_type_id
+			
+          
     FROM t_patient tp
-        INNER JOIN t_visit tv ON (tp.t_patient_id = tv.t_patient_id )
-        INNER JOIN t_result_lab trl ON (tv.t_visit_id = trl.t_visit_id and trl.result_lab_value <> '' )
-        AND (   trim(lower(trl.result_lab_name)) like '%rna%' or  trim(lower(trl.result_lab_name)) like '%sputum%' )
+          CROSS JOIN b_site bs
+          INNER JOIN t_visit tv ON (tp.t_patient_id = tv.t_patient_id )
+          INNER JOIN t_result_lab trl ON (tv.t_visit_id = trl.t_visit_id and trl.result_lab_value <> '' )
+          AND (   trim(lower(trl.result_lab_name)) like '%rna%' or  trim(lower(trl.result_lab_name)) like '%sputum%' )
+          
+            
     WHERE  	patient_pid = '${cid}'
-				and	trl.result_lab_name like 'sputum PCR for COVID%' or trl.result_lab_name like 'SARS-CoV-2-RNA%' or trl.result_lab_name like '%rna%'
-				and (trl.result_lab_value like 'SARS-CoV-2-RNA%'  or trl.result_lab_value like 'Pos%' or trl.result_lab_value like 'DE%')
+            and	trl.result_lab_name like 'sputum PCR for COVID%' or trl.result_lab_name like 'SARS-CoV-2-RNA%' or trl.result_lab_name like '%rna%'
+            and (trl.result_lab_value like 'SARS-CoV-2-RNA%'  or trl.result_lab_value like 'Pos%' or trl.result_lab_value like 'DE%')
     GROUP BY 
         tv.visit_begin_visit_time,
         trl.record_date_time,
         trl.result_lab_name,
         tv.visit_dx ,
+        bs.b_visit_office_id,
         tv.visit_cause_appointment
     ORDER BY 
         substring(trl.record_date_time,1,10) DESC , 
         substring(trl.record_date_time, 12, 17) DESC ;
-		
+        
      `
 
   pool.query(query, (error, results) => {
@@ -296,7 +309,7 @@ const epidem_labs_report = (req, res) => {
           lab_report_date: raw_result.lab_report_date,
           lab_report_result: raw_result.lab_report_result,
           specimen_date: raw_result.specimen_date,
-          specimen_place_id: "11402",
+          specimen_place_id: raw_result.specimen_place_id,
           tests_reason_type_id: raw_result.tests_reason_type_id,
           lab_his_ref_code: '-',
           lab_his_ref_name: raw_result.lab_his_ref_name,
@@ -317,15 +330,20 @@ const epidem_vaccination = (req, res) => {
   const cid = req.params.cid
   let query = `
   SELECT  
-      substring(tv.visit_begin_visit_time,1,10) as vaccine_date,
-      SPLIT_PART(tv.visit_dx, 'เข็ม', 1) as vaccine_manufacturer,
-      SPLIT_PART(tv.visit_dx, 'เข็ม', 2) as dose
-      
-    FROM t_patient tp
-    INNER JOIN t_visit tv 
-          ON tp.t_patient_id = tv.t_patient_id	
+				b_site.b_visit_office_id as vaccine_hospital_code,
+				substring(tv.visit_begin_visit_time,1,10) as vaccine_date,
+				SPLIT_PART(tv.visit_dx, 'เข็ม', 1) as vaccine_manufacturer,
+				SPLIT_PART(tv.visit_dx, 'เข็ม', 2) as dose
+				
+    FROM 
+				t_patient tp
+				INNER JOIN t_visit tv 
+					ON tp.t_patient_id = tv.t_patient_id	
+				cross JOIN b_site
+				
 
-    WHERE tv.visit_dx like '_accine C%'
+		WHERE 
+				tv.visit_dx like '_accine C%'
     and patient_pid = '${cid}'
   `
   pool.query(query, (error, results) => {
@@ -338,7 +356,7 @@ const epidem_vaccination = (req, res) => {
     if (raw_result.length > 0) {
       for (let value of raw_result) {
         let raw = {
-          vaccine_hospital_code : "11402",
+          vaccine_hospital_code : value.vaccine_hospital_code,
           vaccine_date : value.vaccine_date,
           dose : value.dose,
           vaccine_manufacturer : value.vaccine_manufacturer
