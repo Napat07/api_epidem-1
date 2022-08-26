@@ -1,10 +1,10 @@
 const Pool = require('pg').Pool
 const pool = new Pool({
-  user: 'postgres',
-  host: '192.168.0.248',
-  database: '11402',
-  password: 'hos11402',
-  port: 5432,
+  user: 'xxxxs',
+  host: 'xxxx',
+  database: 'xxxx',
+  password: 'xxxx',
+  port: xxxx,
 })
 
 const epidem_hospital = (req, res) => {
